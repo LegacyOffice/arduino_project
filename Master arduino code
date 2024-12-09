@@ -1,0 +1,63 @@
+#include <Wire.h>
+#include <EEPROM.h>
+
+// Slave I2C addresses
+#define SLAVE1_ADDRESS 8
+#define SLAVE2_ADDRESS 9
+#define SLAVE3_ADDRESS 10
+
+// Commands for buzzer and LEDs
+#define BUZZER_ON 1
+#define BUZZER_OFF 0
+
+uint16_t smokeThreshold = 50;  // Smoke threshold
+bool buzzerDisabled = false;   // Buzzer state (false = on, true = off)
+unsigned long buzzerDisableTime = 0; // Time when the buzzer was disabled
+const unsigned long buzzerOffDuration = 60000; // 1 minute in milliseconds
+
+void setup() {
+  Serial.begin(9600);
+  Serial.println("MASTER DEVICE: POWERING ON");
+  Wire.begin(); // Initialize I2C as master
+}
+
+void loop() {
+  // Read the smoke sensor value from Slave 3
+  Serial.println("Requesting smoke sensor value from Slave 3...");
+  int smokeValue = readSmokeSensor(SLAVE3_ADDRESS);
+  if (smokeValue == -1) {
+    Serial.println("Error: No response from Slave 3.");
+  } else {
+    Serial.print("Smoke Value from Slave 3: ");
+    Serial.println(smokeValue);
+  }
+
+  // Check button press from Slave 2
+  Serial.println("Checking button state from Slave 2...");
+  bool buttonPressed = readButtonState(SLAVE2_ADDRESS);
+  if (buttonPressed) {
+    // Disable buzzer for 1 minute
+    buzzerDisabled = true;
+    buzzerDisableTime = millis();
+    Serial.println("Button pressed! Buzzer disabled for 1 minute.");
+  }
+
+  // Check if 1 minute has passed since the buzzer was disabled
+  if (buzzerDisabled && (millis() - buzzerDisableTime >= buzzerOffDuration)) {
+    buzzerDisabled = false;
+    Serial.println("1 minute passed. Buzzer re-enabled.");
+  }
+
+  // Control buzzer and LEDs based on smoke value and buzzer state
+  if (smokeValue > smokeThreshold && !buzzerDisabled) {
+    sendCommand(SLAVE1_ADDRESS, BUZZER_ON); // Turn ON buzzer and LED1
+    sendCommand(SLAVE2_ADDRESS, BUZZER_ON); // Turn ON LED2
+    sendCommand(SLAVE3_ADDRESS, BUZZER_ON); // Turn ON LED3
+  } else {
+    sendCommand(SLAVE1_ADDRESS, BUZZER_OFF); // Turn OFF buzzer and LED1
+    sendCommand(SLAVE2_ADDRESS, BUZZER_OFF); // Turn OFF LED2
+    sendCommand(SLAVE3_ADDRESS, BUZZER_OFF); // Turn OFF LED3
+  }
+
+  delay(1000); // Small delay for stability
+}
