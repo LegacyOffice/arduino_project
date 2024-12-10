@@ -1,0 +1,27 @@
+#include <Wire.h>
+
+// Define the registers for the buzzer pin and LED
+#define BUZZER_PIN 3
+
+void setup() {
+  // Set BUZZER_PIN as output using direct register manipulation (PORTD register)
+  DDRD |= (1 << PD3); // Set PD3 (pin 3) as output
+  
+  Wire.begin(8); // Join I2C bus as Slave 1 with address 8
+  Wire.onReceive(receiveEvent);
+}
+
+void loop() {
+  // Main loop does nothing, actions are taken in `receiveEvent`
+}
+
+void receiveEvent(int numBytes) {
+  if (Wire.available()) {
+    int command = Wire.read();
+    if (command == 1) {
+      PORTD |= (1 << PD3); // Set PD3 high, turning ON buzzer
+    } else {
+      PORTD &= ~(1 << PD3); // Set PD3 low, turning OFF buzzer
+    }
+  }
+}
