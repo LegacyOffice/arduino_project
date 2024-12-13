@@ -1,0 +1,32 @@
+void sendCommand(int address, int command) {
+  Wire.beginTransmission(address);
+  Wire.write(command);
+  if (Wire.endTransmission() != 0) {
+    Serial.print("Error sending command to Slave ");
+    Serial.println(address);
+  }
+}
+
+// Function to request and receive the button state from Slave 2
+bool readButtonState(int slaveAddress) {
+  Wire.requestFrom(slaveAddress, 1); // Request 1 byte of data from Slave 2
+  if (Wire.available() == 1) {
+    return Wire.read(); // Read the button state (0 or 1)
+  } else {
+    Serial.println("Error: No response from Slave 2.");
+    return false; // Return false if no data is available
+  }
+}
+
+// Function to request and receive the smoke sensor data from Slave 3
+int readSmokeSensor(int slaveAddress) {
+  Wire.requestFrom(slaveAddress, 2); // Request 2 bytes of data from Slave 3
+  if (Wire.available() == 2) {
+    byte lowByte = Wire.read();  // Read the lower byte
+    byte highByte = Wire.read(); // Read the higher byte
+    return (highByte << 8) | lowByte; // Combine the two bytes into a 16-bit value
+  } else {
+    Serial.println("Error reading smoke sensor data from Slave 3.");
+    return -1; // Return -1 if no data is available
+  }
+}
